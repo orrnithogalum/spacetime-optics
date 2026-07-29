@@ -1,0 +1,8 @@
+build/
+lensing/lensim
+lensing/lensim-prep
+blackholes/bhrt
+blackholes/bh-prep-sky
+out/
+logs/
+*/data/
