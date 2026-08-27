@@ -16,3 +16,33 @@ A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Pr
   - Ocean sun glint
   - Atmosphere scattering, ozone and airglow
 - Spectral rendering (16 bands)
+
+## Dependencies
+Before compiling, make sure you have:
+
+- an nvidia gpu (sm_80 or newer recommended)
+- cuda 12 or newer and zlib
+- mpi if you want to render on several gpus
+
+## Installation
+
+Build manually from source:
+```bash
+git clone https://github.com/orrnithogalum/spacetime-optics.git
+cd spacetime-optics
+
+cd lensing && make
+```
+
+Use `make NOMPI=1` for a single gpu build, or `make ARCH=sm_89` for other gpus.
+
+## Usage
+
+```bash
+cd lensing
+scripts/fetch_earth_data.sh
+scripts/prepare_earth_data.sh
+
+./lensim scenes/proxima_b.ini --report
+./lensim scenes/proxima_b.ini --out out/proxima_b
+```
