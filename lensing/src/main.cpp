@@ -255,8 +255,8 @@ std::string fmt_angle(double rad) {
     double mas = rad * phys::RAD2MAS;
     char b[64];
     if (mas < 0.001) std::snprintf(b, sizeof b, "%.3g nas", mas * 1e6);
-    else if (mas < 1.0) std::snprintf(b, sizeof b, "%.0f \xC2\xB5" "as", mas * 1e3);
-    else if (mas < 1000.0) std::snprintf(b, sizeof b, "%.3g mas", mas);
+    else if (mas < 0.9995) std::snprintf(b, sizeof b, "%.0f \xC2\xB5" "as", mas * 1e3);
+    else if (mas < 999.5) std::snprintf(b, sizeof b, "%.3g mas", mas);
     else std::snprintf(b, sizeof b, "%.3g arcsec", mas * 1e-3);
     return b;
 }
@@ -368,11 +368,12 @@ Hud make_hud(const FrameSpec& f, const SceneInfo& si, int W, int H, double pix, 
     h.end_block(pad);
 
     // Bottom-right: scale bar
-    double target = pix * W / 6.0;
+    double target = pix * W / 6.0 * phys::RAD2MAS;   // in mas, so the bar gets a round label
     double e = std::pow(10.0, std::floor(std::log10(target)));
     double nice = e;
     for (double k : {1.0, 2.0, 5.0, 10.0})
         if (k * e <= target) nice = k * e;
+    nice /= phys::RAD2MAS;
     int bar = (int)std::lround(nice / pix);
     int x1 = (int)(W - m), x0 = x1 - bar, yy = (int)(H - m - lh_small * 0.6f);
     h.begin_block();
