@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focal Line Viewer</title>
+<style>
+  :root {
+    --bg: #000;
+    --panel: rgba(12, 14, 18, 0.72);
+    --line: rgba(255, 255, 255, 0.14);
+    --text: #e8ecf2;
+    --muted: #9aa3ad;
+    --accent: #ffc477;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; overflow: hidden; }
+  #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  video { max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; display: block; }
+  #ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px 16px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0)); transition: opacity .3s; }
+  #ui.hidden { opacity: 0; pointer-events: none; }
+  .row { display: flex; gap: 14px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .row label { color: var(--muted); min-width: 9.5em; }
+  input[type=range] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+  .readout { min-width: 15em; text-align: right; font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--accent); font-weight: 600; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 12px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  #help { color: var(--muted); font-size: 12px; }
+  #msg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--muted); }
+  @media (max-width: 640px) { .row label { min-width: 100%; } .readout { min-width: 100%; text-align: left; } }
+</style>
+</head>
+<body>
+<div id="stage"><video id="vid" muted playsinline preload="auto"></video></div>
+<div id="msg"></div>
+<div id="ui">
+  <div class="row">
+    <label for="dist">Telescope distance</label>
+    <input id="dist" type="range" min="0" max="0" step="1" value="0">
+    <span class="readout" id="dread"></span>
+  </div>
+  <div class="row" id="latrow" style="display:none">
+    <label for="lat">Off-axis offset</label>
+    <input id="lat" type="range" min="0" max="0" step="1" value="0">
+    <span class="readout" id="lread"></span>
+  </div>
+  <div class="row">
+    <button id="back" title="Move towards Earth">&#9664; towards Earth</button>
+    <button id="play" title="Space">play</button>
+    <button id="out" title="Move away from Earth">away from Earth &#9654;</button>
+    <button id="view" style="display:none" title="T">telescope view</button>
+    <span id="help">&larr;/&rarr; or mouse wheel: move the telescope &middot; shift: faster &middot; &uarr;/&darr;: off-axis &middot; space: play &middot; T: view &middot; H: hide</span>
+  </div>
+</div>
+<script src="meta.js"></script>
+<script>
+(() => {
+  const M = window.LENSIM;
+  const vid = document.getElementById('vid');
+  const msg = document.getElementById('msg');
+  if (!M) {
+    msg.style.display = 'flex';
+    msg.textContent = 'meta.js not found: build the viewer with scripts/make_video.sh <render dir>.';
+    return;
+  }
+  const nd = M.nd, nl = M.nl, fps = M.fps || 30;
+  const dist = document.getElementById('dist'), lat = document.getElementById('lat');
+  const dread = document.getElementById('dread'), lread = document.getElementById('lread');
+  const viewBtn = document.getElementById('view'), playBtn = document.getElementById('play');
+  dist.max = nd - 1;
+  lat.max = nl - 1;
+  if (nl > 1) { document.getElementById('latrow').style.display = 'flex'; lat.value = Math.floor(nl / 2); }
+  const sources = { ideal: 'sweep.mp4', telescope: 'sweep_telescope.mp4' };
+  let view = 'ideal';
+  if (M.telescope) viewBtn.style.display = 'inline-block';
+  vid.src = sources[view];
+
+  const fmt = (v, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const ang = mas => mas < 1 ? fmt(mas * 1000) + ' µas' : fmt(mas, 2) + ' mas';
+  let target = 0, seeking = false, pending = null;
+
+  function frameIndex() { return (+lat.value) * nd + (+dist.value); }
+  function update() {
+    const f = M.frames[frameIndex()];
+    dread.innerHTML = `<b>${fmt(f.D_au)} AU</b> &middot; ${fmt(f.D_au / M.focal_atm_au, 3)} &times; focal &middot; ring ${ang(2 * f.thetaE_mas)}`;
+    lread.textContent = `${fmt(Math.hypot(f.x_km, f.y_km))} km`;
+    seek(frameIndex());
+  }
+  function seek(i) {
+    const t = (i + 0.5) / fps;
+    if (seeking) { pending = t; return; }
+    seeking = true;
+    vid.currentTime = t;
+  }
+  vid.addEventListener('seeked', () => {
+    seeking = false;
+    if (pending !== null) { const t = pending; pending = null; seeking = true; vid.currentTime = t; }
+  });
+  vid.addEventListener('error', () => {
+    msg.style.display = 'flex';
+    msg.textContent = `Cannot load ${vid.src}.`;
+  });
+  vid.addEventListener('loadeddata', update);
+
+  function step(n) {
+    dist.value = Math.min(nd - 1, Math.max(0, +dist.value + n));
+    update();
+  }
+  dist.addEventListener('input', update);
+  lat.addEventListener('input', update);
+  document.getElementById('back').onclick = () => step(-Math.max(1, Math.round(nd / 40)));
+  document.getElementById('out').onclick = () => step(Math.max(1, Math.round(nd / 40)));
+
+  let timer = null, dir = 1;
+  function togglePlay() {
+    if (timer) { clearInterval(timer); timer = null; playBtn.textContent = 'play'; playBtn.classList.remove('on'); return; }
+    playBtn.textContent = 'pause'; playBtn.classList.add('on');
+    timer = setInterval(() => {
+      if (+dist.value >= nd - 1) dir = -1;
+      if (+dist.value <= 0) dir = 1;
+      step(dir);
+    }, 1000 / fps);
+  }
+  playBtn.onclick = togglePlay;
+
+  function toggleView() {
+    if (!M.telescope) return;
+    view = view === 'ideal' ? 'telescope' : 'ideal';
+    viewBtn.classList.toggle('on', view === 'telescope');
+    viewBtn.textContent = view === 'ideal' ? 'telescope view' : 'ideal view';
+    vid.src = sources[view];
+  }
+  viewBtn.onclick = toggleView;
+
+  window.addEventListener('keydown', e => {
+    const big = e.shiftKey ? 10 : 1;
+    if (e.key === 'ArrowRight') { step(big); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { step(-big); e.preventDefault(); }
+    else if (e.key === 'ArrowUp' && nl > 1) { lat.value = Math.min(nl - 1, +lat.value + 1); update(); e.preventDefault(); }
+    else if (e.key === 'ArrowDown' && nl > 1) { lat.value = Math.max(0, +lat.value - 1); update(); e.preventDefault(); }
+    else if (e.key === ' ') { togglePlay(); e.preventDefault(); }
+    else if (e.key === 't' || e.key === 'T') toggleView();
+    else if (e.key === 'h' || e.key === 'H') document.getElementById('ui').classList.toggle('hidden');
+  });
+  document.getElementById('stage').addEventListener('wheel', e => {
+    e.preventDefault();
+    step((e.deltaY > 0 ? 1 : -1) * (e.shiftKey ? 10 : 1));
+  }, { passive: false });
+})();
+</script>
+</body>
+</html>
