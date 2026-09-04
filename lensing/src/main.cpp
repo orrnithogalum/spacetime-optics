@@ -610,8 +610,8 @@ int main(int argc, char** argv) {
     }
     std::string emode = cfg.str("camera.exposure", "auto");
     double key = cfg.num("camera.exposure_key", 0.85);
-    // Eye-adaptation smoothing (frames)
-    double sigma = cfg.num("camera.exposure_smooth", 6);
+    // Eye-adaptation smoothing (frames); short test sequences span too much to be smoothed
+    double sigma = std::min(cfg.num("camera.exposure_smooth", 6), seq.nd / 40.0);
     std::vector<double> ex_ideal, ex_tele;
     {
         std::vector<double> a(lp.begin(), lp.begin() + nframes), b(lp.begin() + nframes, lp.end());
