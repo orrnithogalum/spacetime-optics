@@ -16,6 +16,8 @@ A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Pr
   - Ocean sun glint
   - Atmosphere scattering, ozone and airglow
 - Spectral rendering (16 bands)
+- Telescope view with diffraction through a real aperture
+- Web viewer to move the telescope along and across the focal line
 
 ## Dependencies
 Before compiling, make sure you have:
@@ -23,6 +25,7 @@ Before compiling, make sure you have:
 - an nvidia gpu (sm_80 or newer recommended)
 - cuda 12 or newer and zlib
 - mpi if you want to render on several gpus
+- ffmpeg for the videos
 
 ## Installation
 
@@ -43,6 +46,13 @@ cd lensing
 scripts/fetch_earth_data.sh
 scripts/prepare_earth_data.sh
 
-./lensim scenes/proxima_b.ini --report
-./lensim scenes/proxima_b.ini --out out/proxima_b
+mpirun -np 8 ./lensim scenes/proxima_b_explorer.ini --out out/explorer
+scripts/make_video.sh out/explorer
 ```
+
+Then open `out/explorer/viewer/index.html`:
+
+- `LEFT / RIGHT` arrows or `SCROLL` → move the telescope along the focal line
+- `UP / DOWN` arrows → move it off the axis
+- `SPACE` → play
+- `T` → switch to the telescope view
