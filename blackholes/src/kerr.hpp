@@ -156,6 +156,22 @@ HD double dp54_step(double a, double lam, double eta, const double* y, const dou
     return m;
 }
 
+/* project_radial
+- Constraint stabilisation. r'' = R'/2 conserves r'^2 - R(r) only to integration accuracy, and far
+  from the hole the angular-momentum part of R (~ b^2 r^2) is a tiny fraction of r^4 (1e-13 at r =
+  1e7): a 1e-13 drift would fabricate a turning point thousands of M away.
+- Away from radial turning points we therefore re-project r' = +-sqrt(R(r)) after every step (k[0] =
+  r' as well).
+*/
+HD void project_radial(double a, double lam, double eta, double* y, double* k) {
+    double r = y[0], R = radial_potential(a, lam, eta, r);
+    if (R > 0.25 * r * r * r * r) {
+        double v = sqrt(R);
+        y[1] = y[1] < 0.0 ? -v : v;
+        k[0] = y[1];
+    }
+}
+
 HD double initial_step(const double* y) {
     double r = y[0];
     return 0.02 * fmin(r / (fabs(y[1]) + 1e-12), 1.0 / (fabs(y[3]) + 1e-3));
@@ -178,6 +194,7 @@ HD int vacuum_fate(double a, Photon p, double tol, double r_escape, int max_step
             continue;
         }
         for (int i = 0; i < 6; ++i) { y[i] = yn[i]; k1[i] = k7[i]; }
+        project_radial(a, p.lam, p.eta, y, k1);
         h *= fmin(5.0, fmax(0.2, 0.9 * pow(fmax(err, 1e-30), -0.2)));
         if (y[0] < rh * 1.0001 + 1e-3) return -1;
         if (y[0] > r_escape && y[1] > 0.0) return 1;

@@ -130,6 +130,7 @@ DEVI float4 trace_ray(double x, double yv, const SkyGrad& gr, bool want_sky, int
             if (trans < 1e-5) { *fate = -1; return acc; }
         }
         for (int i = 0; i < 6; ++i) { y[i] = yn[i]; k1[i] = k7[i]; }
+        project_radial(a, lam, eta, y, k1);
         h = hc * fmin(5.0, fmax(0.2, 0.9 * pow(fmax(err, 1e-30), -0.2)));
         if (y[0] < c_S.r_stop) { *fate = -1; return acc; }
         if (y[0] > c_S.r_escape && y[1] > 0.0) {
