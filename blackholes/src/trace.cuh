@@ -71,6 +71,11 @@ DEVI float4 trace_ray(double x, double yv, const SkyGrad& gr, bool want_sky, int
     float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
     double trans = 1.0;
     int ncross = 0;   // equatorial crossings: photon-ring order for the thin (equatorial) disk
+    // Volumetric emission: order n = floor(swept angle / pi), the number of half-orbits completed
+    // around the hole (the whole first pass, near and far side of the flow, is direct light)
+    double psi = 0.0;
+    double sp = sqrt(fmax(1.0 - y[2] * y[2], 0.0));
+    dvec3 pprev = {sp * cos(y[4]), sp * sin(y[4]), y[2]};
     *fate = 0;
     const bool radio = c_S.mode == MODE_RADIO;
     for (int it = 0; it < c_S.max_steps; ++it) {
@@ -88,6 +93,12 @@ DEVI float4 trace_ray(double x, double yv, const SkyGrad& gr, bool want_sky, int
             h = hc * fmax(0.2, 0.9 * pow(fmax(err, 1e-30), -0.2));
             if (!(err == err)) h = hc * 0.1;   // NaN guard
             continue;
+        }
+        if (radio) {
+            double sn = sqrt(fmax(1.0 - yn[2] * yn[2], 0.0));
+            dvec3 pn = {sn * cos(yn[4]), sn * sin(yn[4]), yn[2]};
+            psi += atan2(length(cross(pprev, pn)), dot(pprev, pn));
+            pprev = pn;
         }
         // Equatorial crossing
         if ((y[2] > 0.0) != (yn[2] > 0.0)) {
@@ -121,11 +132,12 @@ DEVI float4 trace_ray(double x, double yv, const SkyGrad& gr, bool want_sky, int
             double dI, dtau;
             flow_step(yn[0], yn[2], yn[4], yn[5], lam, Ecam, hc, &dI, &dtau);
             float c = (float)(trans * dI);
-            // Total, then the light that has circled the hole n = 1, 2, >= 3 times
+            // Total, then the light emitted after n = 1, 2, >= 3 half-orbits
+            int n = (int)(psi * (1.0 / PI));
             acc.x += c;
-            if (ncross == 1) acc.y += c;
-            else if (ncross == 2) acc.z += c;
-            else if (ncross >= 3) acc.w += c;
+            if (n == 1) acc.y += c;
+            else if (n == 2) acc.z += c;
+            else if (n >= 3) acc.w += c;
             trans *= exp(-dtau);
             if (trans < 1e-5) { *fate = -1; return acc; }
         }
