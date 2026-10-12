@@ -5,4 +5,6 @@ blackholes/bhrt
 blackholes/bh-prep-sky
 out/
 logs/
+renders/
 */data/
+*.o
