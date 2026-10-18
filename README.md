@@ -37,6 +37,8 @@ A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Pr
   - Thermal synchrotron emission from a hot accretion flow
   - Flux normalised to the 0.6 Jy seen by the Event Horizon Telescope
   - Animated turbulence that keeps its light travel delays
+- Zoom into the photon ring (up to x40,000), with the light coloured by the number of times it went around the hole
+- Real sky behind the hole: the Gaia star map (1.7 billion stars), with doppler and gravitational shifts
 - Thin accretion disk in true colours
 - Self test against the analytic shadow edge
 - Built with **CUDA** and **MPI**, frames are spread across all the gpus of one or more machines
@@ -87,6 +89,12 @@ Then open `out/explorer/viewer/index.html`:
 ```bash
 cd blackholes
 ./bhrt --selftest
+
+scripts/fetch_sky.sh
+./bh-prep-sky data/sky/starmap_2020_32k_gal.exr data/sky/sky.bhsk
+
+mpirun -np 8 ./bhrt shots/01_m87_eht.ini --out renders/01_m87_eht
+scripts/encode_shot.sh renders/01_m87_eht
 ```
 
 ### Slurm clusters
@@ -96,7 +104,7 @@ cd blackholes
 
 ```bash
 source scripts/slurm/env.sh
-sbatch --nodes=4 scripts/slurm/render.slurm scenes/proxima_b_cinematic.ini
+sbatch --nodes=4 scripts/slurm/render.slurm shots/02_photon_ring_zoom.ini
 ```
 
-Use one MPI rank per gpu.
+Use one MPI rank per gpu. `blackholes/scripts/slurm/produce_all.sh` renders the whole film in 4K.
