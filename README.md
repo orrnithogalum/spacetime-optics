@@ -43,6 +43,11 @@ A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Pr
 - Self test against the analytic shadow edge
 - Built with **CUDA** and **MPI**, frames are spread across all the gpus of one or more machines
 
+## Planned Features
+
+- Moon and planets in the Earth lens scenes?
+- Wave optics near the focal line?
+
 ## Dependencies
 Before compiling, make sure you have:
 
