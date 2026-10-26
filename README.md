@@ -3,6 +3,33 @@
 Spacetime Optics is a set of physically based GPU renderers for light bent by gravity, written in C++ and CUDA.  
 It renders the photon rings of black holes, and what a telescope would see from Earth's gravitational focal point.
 
+<p align="center">
+  <img src="docs/images/m87_photon_ring.jpg" alt="M87* photon ring" width="820">
+</p>
+
+## Black holes
+
+<p align="center">
+  <img src="docs/images/photon_ring_zoom.jpg" alt="Photon ring zoom" width="405">
+  <img src="docs/images/photon_ring_orders.jpg" alt="Photon ring orders" width="405">
+  <img src="docs/images/milky_way_lensed.jpg" alt="Lensed Milky Way" width="405">
+  <img src="docs/images/milky_way_shadow.jpg" alt="Black hole shadow" width="405">
+  <img src="docs/images/accretion_disk.jpg" alt="Accretion disk" width="820">
+</p>
+
+### Features
+
+- Kerr geodesics traced in double precision (Carter-Mino equations, adaptive Dormand-Prince)
+- M87* at 230 GHz:
+  - Thermal synchrotron emission from a hot accretion flow
+  - Flux normalised to the 0.6 Jy seen by the Event Horizon Telescope
+  - Animated turbulence that keeps its light travel delays
+- Zoom into the photon ring (up to x40,000), with the light coloured by the number of times it went around the hole
+- Real sky behind the hole: the Gaia star map (1.7 billion stars), with doppler and gravitational shifts
+- Thin accretion disk in true colours
+- Self test against the analytic shadow edge
+- Built with **CUDA** and **MPI**, frames are spread across all the gpus of one or more machines
+
 ## Earth as a gravitational lens
 
 <p align="center">
@@ -11,7 +38,7 @@ It renders the photon rings of black holes, and what a telescope would see from 
   <img src="docs/images/earth_arcs.jpg" alt="Off axis arcs" width="270">
 </p>
 
-A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Proxima b), sees the planet's light bent into an Einstein ring around Earth.
+Earth bends light too. A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Proxima b), sees the planet's light bent into an Einstein ring around Earth.
 
 ### Features
 
@@ -27,21 +54,6 @@ A telescope 4,000 to 90,000 AU behind Earth, lined up with an exoplanet (here Pr
 
 > [!TIP]
 > Run `./lensim scenes/proxima_b.ini --report` to print the refraction and gravity tables.
-
-## Black holes
-
-### Features
-
-- Kerr geodesics traced in double precision (Carter-Mino equations, adaptive Dormand-Prince)
-- M87* at 230 GHz:
-  - Thermal synchrotron emission from a hot accretion flow
-  - Flux normalised to the 0.6 Jy seen by the Event Horizon Telescope
-  - Animated turbulence that keeps its light travel delays
-- Zoom into the photon ring (up to x40,000), with the light coloured by the number of times it went around the hole
-- Real sky behind the hole: the Gaia star map (1.7 billion stars), with doppler and gravitational shifts
-- Thin accretion disk in true colours
-- Self test against the analytic shadow edge
-- Built with **CUDA** and **MPI**, frames are spread across all the gpus of one or more machines
 
 ## Planned Features
 
@@ -71,6 +83,19 @@ Use `make NOMPI=1` for a single gpu build, or `make ARCH=sm_89` for other gpus.
 
 ## Usage
 
+### Black holes
+
+```bash
+cd blackholes
+./bhrt --selftest
+
+scripts/fetch_sky.sh
+./bh-prep-sky data/sky/starmap_2020_32k_gal.exr data/sky/sky.bhsk
+
+mpirun -np 8 ./bhrt shots/01_m87_eht.ini --out renders/01_m87_eht
+scripts/encode_shot.sh renders/01_m87_eht
+```
+
 ### Earth lens
 
 ```bash
@@ -88,19 +113,6 @@ Then open `out/explorer/viewer/index.html`:
 - `UP / DOWN` arrows → move it off the axis
 - `SPACE` → play
 - `T` → switch to the telescope view
-
-### Black holes
-
-```bash
-cd blackholes
-./bhrt --selftest
-
-scripts/fetch_sky.sh
-./bh-prep-sky data/sky/starmap_2020_32k_gal.exr data/sky/sky.bhsk
-
-mpirun -np 8 ./bhrt shots/01_m87_eht.ini --out renders/01_m87_eht
-scripts/encode_shot.sh renders/01_m87_eht
-```
 
 ### Slurm clusters
 
