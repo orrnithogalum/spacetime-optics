@@ -125,3 +125,9 @@ sbatch --nodes=4 scripts/slurm/render.slurm shots/02_photon_ring_zoom.ini
 ```
 
 Use one MPI rank per gpu. `blackholes/scripts/slurm/produce_all.sh` renders the whole film in 4K.
+
+## Credits
+
+- Star map: NASA/Goddard Scientific Visualization Studio, Deep Star Maps 2020 (Gaia DR2: ESA/Gaia/DPAC)
+- Earth: NASA Visible Earth (Blue Marble, Black Marble) and GEBCO
+- HUD font: Liberation Mono
