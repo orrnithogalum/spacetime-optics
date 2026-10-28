@@ -57,6 +57,7 @@ Earth bends light too. A telescope 4,000 to 90,000 AU behind Earth, lined up wit
 
 ## Planned Features
 
+- Polarisation for the M87* images?
 - Moon and planets in the Earth lens scenes?
 - Wave optics near the focal line?
 
